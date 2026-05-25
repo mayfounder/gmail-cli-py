@@ -1,0 +1,118 @@
+"""OAuth2 authentication for Gmail (Web client, localhost:8080)."""
+
+from __future__ import annotations
+
+import threading
+import webbrowser
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import parse_qs, urlparse
+
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import Flow
+
+from gmail_cli_py.config import require_oauth_credentials, token_path
+from gmail_cli_py.mime import GMAIL_READONLY_SCOPE
+
+REDIRECT_URI = "http://localhost:8080/callback"
+SCOPES = [GMAIL_READONLY_SCOPE]
+
+_auth_lock = threading.Lock()
+
+
+def _client_config(client_id: str, client_secret: str) -> dict:
+    return {
+        "web": {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "redirect_uris": [REDIRECT_URI],
+        }
+    }
+
+
+def _open_browser(url: str) -> None:
+    try:
+        webbrowser.open(url)
+    except Exception:
+        pass
+
+
+def _wait_for_auth_code() -> str:
+    code_holder: list[str] = []
+
+    class CallbackHandler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:
+            query = parse_qs(urlparse(self.path).query)
+            code_holder.append(query.get("code", [""])[0])
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(
+                b"Authorization successful! You can close this window now."
+            )
+
+        def log_message(self, format: str, *args: object) -> None:
+            return
+
+    server = HTTPServer(("localhost", 8080), CallbackHandler)
+    thread = threading.Thread(target=server.handle_request, daemon=True)
+    thread.start()
+    thread.join(timeout=300)
+    server.server_close()
+    return code_holder[0] if code_holder else ""
+
+
+def _authorize_via_browser(email: str) -> Credentials:
+    client_id, client_secret = require_oauth_credentials()
+    flow = Flow.from_client_config(
+        _client_config(client_id, client_secret),
+        scopes=SCOPES,
+        redirect_uri=REDIRECT_URI,
+    )
+    auth_url, _ = flow.authorization_url(
+        access_type="offline",
+        include_granted_scopes="true",
+        prompt="consent",
+        state="state-token",
+    )
+    print(f"Choose account {email} to authorize")
+    print(f"Go to the following link in your browser:\n{auth_url}\n")
+    _open_browser(auth_url)
+    code = _wait_for_auth_code()
+    if not code:
+        raise RuntimeError("Didn't get authorization code")
+    flow.fetch_token(code=code)
+    creds = flow.credentials
+    path = token_path(email)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    print(f"Saving credential file to: {path}")
+    path.write_text(creds.to_json(), encoding="utf-8")
+    path.chmod(0o600)
+    return creds
+
+
+def get_credentials(email: str) -> Credentials:
+    path = token_path(email)
+    if path.exists():
+        creds = Credentials.from_authorized_user_file(str(path), SCOPES)
+        if creds and creds.valid:
+            return creds
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+            path.write_text(creds.to_json(), encoding="utf-8")
+            path.chmod(0o600)
+            return creds
+
+    with _auth_lock:
+        if path.exists():
+            creds = Credentials.from_authorized_user_file(str(path), SCOPES)
+            if creds and creds.valid:
+                return creds
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+                path.write_text(creds.to_json(), encoding="utf-8")
+                path.chmod(0o600)
+                return creds
+        return _authorize_via_browser(email)
