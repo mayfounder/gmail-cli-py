@@ -17,6 +17,7 @@ run_app = typer.Typer(help="Run Gmail operations.")
 app.add_typer(config_app, name="config")
 app.add_typer(run_app, name="run")
 
+
 DEFAULT_COUNT = 20
 UI_PAGE_SIZE = 30
 
@@ -62,22 +63,26 @@ def config_delete(
     typer.echo(f"Deleted account: {email}")
 
 
-@run_app.command("read")
-def run_read(
+@run_app.command("query")
+def run_query(
+    query_str: str = typer.Argument(..., help="Gmail search query"),
     count: int = typer.Option(
         DEFAULT_COUNT,
         "--count",
         "-n",
         min=1,
-        help="Max emails per account (last 24 hours)",
+        help="Max emails per account",
     ),
     raw: bool = typer.Option(
+        False, "--raw", help="Return raw decoded body (no HTML-to-text stripping)"
+    ),
+    json: bool = typer.Option(
         False,
-        "--raw",
-        help="Return raw decoded body (no HTML-to-text stripping)",
+        "--json",
+        help="Return all emails in JSON array format.",
     ),
 ) -> None:
-    """Read emails from all configured accounts."""
+    """Query Gmail accounts with a search string."""
     accounts = config.get_accounts()
     if not accounts:
         typer.echo(
@@ -91,8 +96,63 @@ def run_read(
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
 
+    all_mails = []
     for account in accounts:
-        for mail in read_emails(account, count, raw=raw):
+        for mail in read_emails(account, count, query=query_str, raw=raw):
+            all_mails.append(mail)
+
+    if json:
+        import json  # Ensure json is imported if it's not already
+
+        typer.echo(json.dumps(all_mails, indent=2))
+    else:
+        for mail in all_mails:
+            typer.echo(format_mail_text(mail))
+
+
+@run_app.command("read")
+def run_read(
+    count: int = typer.Option(
+        DEFAULT_COUNT,
+        "--count",
+        "-n",
+        min=1,
+        help="Max emails per account (last 24 hours)",
+    ),
+    raw: bool = typer.Option(
+        False, "--raw", help="Return raw decoded body (no HTML-to-text stripping)"
+    ),
+    json: bool = typer.Option(
+        False,
+        "--json",
+        help="Return all emails in JSON array format.",
+    ),
+) -> None:
+    """Query Gmail accounts with a search string."""
+    accounts = config.get_accounts()
+    if not accounts:
+        typer.echo(
+            "No accounts configured. Use 'gmail-cli-py config add <email>' to add an account."
+        )
+        raise typer.Exit(1)
+
+    try:
+        config.require_oauth_credentials()
+    except RuntimeError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+    all_mails = []
+    for account in accounts:
+        for mail in read_emails(account, count, query=None, raw=raw):
+            all_mails.append(mail)
+
+    if json:
+        import json  # Ensure json is imported if it's not already
+
+        typer.echo(json.dumps(all_mails, indent=2))
+    else:
+        for mail in all_mails:
             typer.echo(format_mail_text(mail))
 
 

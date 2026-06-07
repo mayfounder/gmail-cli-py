@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
+from zoneinfo import ZoneInfo
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -16,6 +18,8 @@ from gmail_cli_py.mime import GMAIL_READONLY_SCOPE
 
 REDIRECT_URI = "http://localhost:8080/callback"
 SCOPES = [GMAIL_READONLY_SCOPE]
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 _auth_lock = threading.Lock()
 
@@ -77,8 +81,8 @@ def _authorize_via_browser(email: str) -> Credentials:
         prompt="consent",
         state="state-token",
     )
-    print(f"Choose account {email} to authorize")
-    print(f"Go to the following link in your browser:\n{auth_url}\n")
+    logger.info(f"Choose account {email} to authorize")
+    logger.info(f"Go to the following link in your browser:\n{auth_url}\n")
     _open_browser(auth_url)
     code = _wait_for_auth_code()
     if not code:
@@ -87,7 +91,7 @@ def _authorize_via_browser(email: str) -> Credentials:
     creds = flow.credentials
     path = token_path(email)
     path.parent.mkdir(parents=True, exist_ok=True)
-    print(f"Saving credential file to: {path}")
+    logger.info(f"Saving credential file to: {path}")
     path.write_text(creds.to_json(), encoding="utf-8")
     path.chmod(0o600)
     return creds
@@ -97,9 +101,13 @@ def get_credentials(email: str) -> Credentials:
     path = token_path(email)
     if path.exists():
         creds = Credentials.from_authorized_user_file(str(path), SCOPES)
+        logger.info(
+            f"Token expires at: {creds.expiry.strftime('%Y-%m-%d %H:%M:%S')} UTC"
+        )
         if creds and creds.valid:
             return creds
         if creds and creds.expired and creds.refresh_token:
+            logger.info("Fetching refresh token")
             creds.refresh(Request())
             path.write_text(creds.to_json(), encoding="utf-8")
             path.chmod(0o600)

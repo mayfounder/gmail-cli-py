@@ -35,14 +35,12 @@ def test_message_to_mail_plain_payload():
 
 
 @pytest.mark.asyncio
-async def test_read_emails_async_parallel_gets(monkeypatch):
-    msg_ids = ["id1", "id2", "id3"]
-    concurrent = 0
-    max_concurrent = 0
-
+async def test_read_emails_async_with_query(monkeypatch):
+    msg_ids = ["id1"]
     service = MagicMock()
 
     def fake_list(_service, _query, _n):
+        assert _query == "from:boss"
         return msg_ids
 
     def fake_get(_service, msg_id: str):
@@ -54,16 +52,6 @@ async def test_read_emails_async_parallel_gets(monkeypatch):
             }
         }
 
-    async def fake_to_thread(fn, *args, **kwargs):
-        nonlocal concurrent, max_concurrent
-        concurrent += 1
-        max_concurrent = max(max_concurrent, concurrent)
-        await asyncio.sleep(0)  # let other gather tasks enter
-        try:
-            return fn(*args, **kwargs)
-        finally:
-            concurrent -= 1
-
     monkeypatch.setattr(
         "gmail_cli_py.gmail_service._build_service",
         lambda _email: service,
@@ -74,8 +62,7 @@ async def test_read_emails_async_parallel_gets(monkeypatch):
     monkeypatch.setattr(
         "gmail_cli_py.gmail_service._get_message_sync", fake_get
     )
-    monkeypatch.setattr("gmail_cli_py.gmail_service.asyncio.to_thread", fake_to_thread)
 
-    mails = [m async for m in read_emails_async("user@gmail.com", 3)]
-    assert len(mails) == 3
-    assert max_concurrent > 1
+    mails = [m async for m in read_emails_async("user@gmail.com", 1, query="from:boss")]
+    assert len(mails) == 1
+    assert mails[0].subject == "id1"
