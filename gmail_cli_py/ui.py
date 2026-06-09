@@ -9,7 +9,8 @@ from textual.containers import Horizontal
 from textual.widgets import Footer, Label, ListItem, ListView, Static
 
 from gmail_cli_py import config
-from gmail_cli_py.gmail_service import Mail, read_emails_async
+from gmail_cli_py.gmail_service import read_emails_async
+from gmail_cli_py.models import Mail, MailTextEncoder
 
 UI_PAGE_SIZE = 30
 
@@ -79,9 +80,8 @@ class MailsApp(App):
         if mail is None:
             return
         body = self.query_one("#email-body", Static)
-        body.update(
-            f"From: {mail.from_addr}\nDate: {mail.date}\n\n{mail.body}",
-        )
+        text_encoder = MailTextEncoder()
+        body.update(text_encoder.encode(mail))
 
     def action_focus_list(self) -> None:
         self.query_one("#email-list", ListView).focus()

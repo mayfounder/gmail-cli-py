@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -20,6 +21,23 @@ REDIRECT_URI = "http://localhost:8080/callback"
 SCOPES = [GMAIL_READONLY_SCOPE]
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+# Track if expiry has been logged for each email to avoid duplicate logging
+_logged_expiry: dict[str, bool] = {}
+
+
+def _get_expiry_in_local_tz(creds: Credentials) -> str:
+    """Get expiry time converted to local timezone.
+    
+    Google returns expiry as UTC datetime, but it may be timezone-naive.
+    We assume UTC if timezone is not set and convert to local time.
+    """
+    local_tz = datetime.now().astimezone().tzinfo
+    expiry_utc = creds.expiry.replace(tzinfo=timezone.utc)
+    expiry_local = expiry_utc.astimezone(local_tz)
+    return expiry_local.strftime("%Y-%m-%d %H:%M:%S")
+
 
 _auth_lock = threading.Lock()
 
@@ -97,30 +115,50 @@ def _authorize_via_browser(email: str) -> Credentials:
     return creds
 
 
+def _log_reauth_reason(creds: Credentials | None) -> None:
+    """Log why re-authentication is needed."""
+    if not creds:
+        logger.info("No credentials found, authenticating")
+    elif not creds.valid:
+        logger.info("Credentials expired without refresh token, authenticating")
+    elif not creds.refresh_token:
+        logger.info("Credentials expired without refresh token, authenticating")
+    else:
+        logger.info("Credentials invalid, authenticating")
+
+
 def get_credentials(email: str) -> Credentials:
     path = token_path(email)
+    creds = None
+
+    # Load initial credentials once
     if path.exists():
         creds = Credentials.from_authorized_user_file(str(path), SCOPES)
-        logger.info(
-            f"Token expires at: {creds.expiry.strftime('%Y-%m-%d %H:%M:%S')} UTC"
-        )
-        if creds and creds.valid:
-            return creds
-        if creds and creds.expired and creds.refresh_token:
-            logger.info("Fetching refresh token")
-            creds.refresh(Request())
-            path.write_text(creds.to_json(), encoding="utf-8")
-            path.chmod(0o600)
-            return creds
 
-    with _auth_lock:
-        if path.exists():
-            creds = Credentials.from_authorized_user_file(str(path), SCOPES)
-            if creds and creds.valid:
-                return creds
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-                path.write_text(creds.to_json(), encoding="utf-8")
-                path.chmod(0o600)
-                return creds
-        return _authorize_via_browser(email)
+    # Check if creds are valid
+    if creds and creds.valid:
+        # Log expiry only once per email account
+        if not _logged_expiry.get(email, False):
+            _logged_expiry[email] = True
+            logger.info(
+                f"Token expires at: {_get_expiry_in_local_tz(creds)} local time"
+            )
+        return creds
+
+    # Try to refresh expired credentials
+    if creds and creds.expired and creds.refresh_token:
+        logger.info("Fetching refresh token")
+        creds.refresh(Request())
+        path.write_text(creds.to_json(), encoding="utf-8")
+        path.chmod(0o600)
+        # Log expiry once after refresh
+        if not _logged_expiry.get(email, False):
+            _logged_expiry[email] = True
+            logger.info(
+                f"Token expires at: {_get_expiry_in_local_tz(creds)} local time"
+            )
+        return creds
+
+    # Credentials not valid and no refresh token - need to re-authenticate
+    _log_reauth_reason(creds)
+    return _authorize_via_browser(email)

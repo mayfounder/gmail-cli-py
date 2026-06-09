@@ -5,7 +5,8 @@ from __future__ import annotations
 import typer
 
 from gmail_cli_py import config
-from gmail_cli_py.gmail_service import format_mail_text, read_emails
+from gmail_cli_py.gmail_service import read_emails
+from gmail_cli_py.models import Mail, MailJsonEncoder, MailTextEncoder
 
 app = typer.Typer(
     name="gmail-cli-py",
@@ -81,7 +82,7 @@ def run_query(
         "--json",
         help="Return all emails in JSON array format.",
     ),
-) -> None:
+    ) -> None:
     """Query Gmail accounts with a search string."""
     accounts = config.get_accounts()
     if not accounts:
@@ -102,12 +103,13 @@ def run_query(
             all_mails.append(mail)
 
     if json:
-        import json  # Ensure json is imported if it's not already
+        import json
 
-        typer.echo(json.dumps(all_mails, indent=2))
+        typer.echo(json.dumps(all_mails, indent=2, cls=MailJsonEncoder))
     else:
+        text_encoder = MailTextEncoder()
         for mail in all_mails:
-            typer.echo(format_mail_text(mail))
+            typer.echo(text_encoder.encode(mail))
 
 
 @run_app.command("read")
@@ -127,7 +129,7 @@ def run_read(
         "--json",
         help="Return all emails in JSON array format.",
     ),
-) -> None:
+    ) -> None:
     """Query Gmail accounts with a search string."""
     accounts = config.get_accounts()
     if not accounts:
@@ -148,12 +150,13 @@ def run_read(
             all_mails.append(mail)
 
     if json:
-        import json  # Ensure json is imported if it's not already
+        import json
 
-        typer.echo(json.dumps(all_mails, indent=2))
+        typer.echo(json.dumps(all_mails, indent=2, cls=MailJsonEncoder))
     else:
+        text_encoder = MailTextEncoder()
         for mail in all_mails:
-            typer.echo(format_mail_text(mail))
+            typer.echo(text_encoder.encode(mail))
 
 
 @app.command("ui")
