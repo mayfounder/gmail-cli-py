@@ -82,7 +82,7 @@ def run_query(
         "--json",
         help="Return all emails in JSON array format.",
     ),
-    ) -> None:
+) -> None:
     """Query Gmail accounts with a search string."""
     accounts = config.get_accounts()
     if not accounts:
@@ -129,7 +129,7 @@ def run_read(
         "--json",
         help="Return all emails in JSON array format.",
     ),
-    ) -> None:
+) -> None:
     """Query Gmail accounts with a search string."""
     accounts = config.get_accounts()
     if not accounts:

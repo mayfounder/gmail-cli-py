@@ -163,16 +163,3 @@ def read_emails(
         raise RuntimeError(
             "read_emails() cannot be called from an async context; use read_emails_async()"
         )
-
-
-def format_mail_text(mail: Mail) -> str:
-    sep = "-" * 40
-    return (
-        f"{sep}\n"
-        f"Account: {remove_invisible_chars(mail.account)}\n"
-        f"Subject: {remove_invisible_chars(mail.subject)}\n"
-        f"From: {remove_invisible_chars(mail.from_addr)}\n"
-        f"Date: {remove_invisible_chars(mail.date)}\n"
-        f"Gmail Message ID: {mail.gmail_message_id}\n"
-        f"\n{mail.body}\n"
-    )

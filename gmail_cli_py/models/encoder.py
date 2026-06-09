@@ -19,7 +19,9 @@ class MailJsonEncoder(json.JSONEncoder):
                 "account": obj.account,
                 "subject": obj.subject,
                 "from_addr": obj.from_addr,
-                "date": obj.date.isoformat() if isinstance(obj.date, datetime) else obj.date,
+                "date": (
+                    obj.date.isoformat() if isinstance(obj.date, datetime) else obj.date
+                ),
                 "body": obj.body,
                 "gmail_message_id": obj.gmail_message_id,
             }

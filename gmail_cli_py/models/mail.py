@@ -28,5 +28,9 @@ class Mail:
         self.account = remove_invisible_chars(self.account)
         self.subject = remove_invisible_chars(self.subject)
         self.from_addr = remove_invisible_chars(self.from_addr)
-        self.date = remove_invisible_chars(self.date) if isinstance(self.date, str) else self.date
+        self.date = (
+            remove_invisible_chars(self.date)
+            if isinstance(self.date, str)
+            else self.date
+        )
         self.body = remove_invisible_chars(self.body)

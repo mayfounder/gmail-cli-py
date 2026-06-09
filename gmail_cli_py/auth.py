@@ -29,7 +29,7 @@ _logged_expiry: dict[str, bool] = {}
 
 def _get_expiry_in_local_tz(creds: Credentials) -> str:
     """Get expiry time converted to local timezone.
-    
+
     Google returns expiry as UTC datetime, but it may be timezone-naive.
     We assume UTC if timezone is not set and convert to local time.
     """
