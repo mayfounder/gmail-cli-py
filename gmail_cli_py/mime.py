@@ -34,7 +34,6 @@ def html_to_text(html: str) -> str:
 
 
 def _part_body(part: dict[str, Any], *, raw: bool) -> str:
-    from datetime import datetime
 
     mime = part.get("mimeType", "")
     body_obj = part.get("body") or {}
@@ -51,7 +50,6 @@ def _part_body(part: dict[str, Any], *, raw: bool) -> str:
 
 def extract_body(payload: dict[str, Any], *, raw: bool = False) -> str:
     """Extract message body from a Gmail API message payload."""
-    from datetime import datetime
 
     mime = payload.get("mimeType", "")
     body_obj = payload.get("body") or {}

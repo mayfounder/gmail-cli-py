@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any
 
 from gmail_cli_py.mime import remove_invisible_chars
 

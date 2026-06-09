@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
 import threading
 import webbrowser
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
-from zoneinfo import ZoneInfo
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials

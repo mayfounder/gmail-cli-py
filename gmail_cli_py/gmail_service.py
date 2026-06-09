@@ -44,7 +44,6 @@ def _get_message_sync(service: Any, msg_id: str) -> dict[str, Any]:
 
 
 def _message_to_mail(account: str, msg: dict[str, Any], *, raw: bool) -> Mail:
-    from datetime import datetime
 
     payload = msg.get("payload") or {}
     headers = payload.get("headers") or []

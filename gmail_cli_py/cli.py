@@ -6,7 +6,7 @@ import typer
 
 from gmail_cli_py import config
 from gmail_cli_py.gmail_service import read_emails
-from gmail_cli_py.models import Mail, MailJsonEncoder, MailTextEncoder
+from gmail_cli_py.models import MailJsonEncoder, MailTextEncoder
 
 app = typer.Typer(
     name="gmail-cli-py",
