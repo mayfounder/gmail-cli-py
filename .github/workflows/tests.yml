@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13", "latest"]
+        python-version: ["3.11", "3.12", "3.13", "latest"]
 
     steps:
       - uses: actions/checkout@v4
@@ -37,6 +37,10 @@ jobs:
 
       - name: Install uv tool
         run: uv tool install .
+
+      - name: Install spacy models
+        run: |
+          uv run python -m spacy download en_core_web_sm
 
       - name: Run tests
         run: uv run pytest tests -v --tb=short

@@ -53,7 +53,7 @@ def test_clean_pii_already_cleaned():
 
     cleaned = mail.clean_pii()
 
-    # Check that already redacted PII is preserved
+    # With mocked Presidio, already redacted PII should be preserved
     assert cleaned.subject == "<PERSON> - Here are your details"
     assert cleaned.from_addr == "<EMAIL_ADDRESS>"
     assert cleaned.body == "<PHONE_NUMBER>\n<EMAIL_ADDRESS>\n<US_SSN>\n<CRYPTO>"
@@ -72,6 +72,7 @@ def test_clean_pii_preserves_account_and_date():
 
     cleaned = mail.clean_pii()
 
+    # With mocked Presidio, account and date should be preserved
     assert cleaned.account == "alice.smith@gmail.com"
     assert cleaned.date == "Mon, 1 Jan 2024"
     assert cleaned.gmail_message_id == "msg123"
