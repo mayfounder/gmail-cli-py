@@ -27,6 +27,8 @@ jobs:
           python-version: ${{ matrix.python-version }} # Handles both uv installation and version mapping in one step!
 
       - name: Install Dependencies
+        env:
+          UV_VENV_SEED: "true"
         run: |
           uv sync --locked --dev
 
