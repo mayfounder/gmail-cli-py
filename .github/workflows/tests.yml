@@ -30,17 +30,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
 
-      - name: Install pip
-        run: |
-          python -m ensurepip --upgrade
-          python -m pip install --upgrade pip
-
       - name: Install uv tool
         run: uv tool install .
 
       - name: Install spacy models
         run: |
-          uv run python -m pip install spacy
+          uv pip install spacy
           uv run python -m spacy download en_core_web_sm
 
       - name: Run tests
