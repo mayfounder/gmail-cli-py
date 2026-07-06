@@ -26,7 +26,7 @@ def test_message_to_mail_plain_payload():
             },
         }
     }
-    mail = _message_to_mail("user@gmail.com", msg, raw=False)
+    mail = _message_to_mail("user@gmail.com", msg, raw=False, show_pii=True)
     assert mail.subject == "Hello"
     assert mail.from_addr == "a@b.com"
     assert mail.account == "user@gmail.com"
@@ -61,7 +61,7 @@ async def test_read_emails_async_with_query(monkeypatch):
     monkeypatch.setattr("gmail_cli_py.gmail_service._list_messages_sync", fake_list)
     monkeypatch.setattr("gmail_cli_py.gmail_service._get_message_sync", fake_get)
 
-    mails = [m async for m in read_emails_async("user@gmail.com", 1, query="from:boss")]
+    mails = [m async for m in read_emails_async("user@gmail.com", 1, query="from:boss", show_pii=True)]
     assert len(mails) == 1
     assert mails[0].subject == "id1"
 
@@ -107,7 +107,7 @@ async def test_read_emails_async_parallel_fetch(monkeypatch):
     monkeypatch.setattr("gmail_cli_py.gmail_service._list_messages_sync", fake_list)
     monkeypatch.setattr("gmail_cli_py.gmail_service._get_message_sync", fake_get)
 
-    mails = [m async for m in read_emails_async("user@gmail.com", 5, raw=True)]
+    mails = [m async for m in read_emails_async("user@gmail.com", 5, raw=True, show_pii=True)]
     # Parallel fetch means all succeed (no race conditions in mocks)
     assert len(mails) == 5
     # Results are sorted by msg_id
@@ -146,7 +146,7 @@ async def test_read_emails_async_partial_errors(monkeypatch):
     monkeypatch.setattr("gmail_cli_py.gmail_service._list_messages_sync", fake_list)
     monkeypatch.setattr("gmail_cli_py.gmail_service._get_message_sync", fake_get)
 
-    mails = [m async for m in read_emails_async("user@gmail.com", 4)]
+    mails = [m async for m in read_emails_async("user@gmail.com", 4, show_pii=True)]
     # id3 fails, so we should get only 3 mails
     assert len(mails) == 3
     # Results are sorted by msg_id

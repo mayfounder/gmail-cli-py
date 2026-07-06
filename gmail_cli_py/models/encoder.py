@@ -11,6 +11,7 @@ class MailJsonEncoder(json.JSONEncoder):
     """Custom JSON encoder for Mail objects.
 
     Converts Mail objects to dictionaries with invisible characters removed.
+    PII is automatically removed from subject, from_addr, and body.
     """
 
     def default(self, obj: Any) -> Any:
@@ -34,6 +35,7 @@ class MailTextEncoder:
     """Text encoder for Mail objects.
 
     Formats Mail objects as plain text with invisible characters removed.
+    PII is automatically removed from subject, from_addr, and body.
     """
 
     def encode(self, mail: Mail) -> str:

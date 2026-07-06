@@ -82,12 +82,24 @@ def run_query(
         "--json",
         help="Return all emails in JSON array format.",
     ),
+    show_pii: bool = typer.Option(
+        False,
+        "--show-pii",
+        help="Show PII data without redaction (mutually exclusive with --json and --raw)",
+    ),
 ) -> None:
     """Query Gmail accounts with a search string."""
     accounts = config.get_accounts()
     if not accounts:
         typer.echo(
             "No accounts configured. Use 'gmail-cli-py config add <email>' to add an account."
+        )
+        raise typer.Exit(1)
+
+    if show_pii and (raw or json):
+        typer.echo(
+            "Error: --show-pii is mutually exclusive with --json and --raw.",
+            err=True,
         )
         raise typer.Exit(1)
 
@@ -100,6 +112,8 @@ def run_query(
     all_mails = []
     for account in accounts:
         for mail in read_emails(account, count, query=query_str, raw=raw):
+            if not show_pii:
+                mail = mail.clean_pii()
             all_mails.append(mail)
 
     if json:
@@ -129,12 +143,24 @@ def run_read(
         "--json",
         help="Return all emails in JSON array format.",
     ),
+    show_pii: bool = typer.Option(
+        False,
+        "--show-pii",
+        help="Show PII data without redaction (mutually exclusive with --json and --raw)",
+    ),
 ) -> None:
     """Query Gmail accounts with a search string."""
     accounts = config.get_accounts()
     if not accounts:
         typer.echo(
             "No accounts configured. Use 'gmail-cli-py config add <email>' to add an account."
+        )
+        raise typer.Exit(1)
+
+    if show_pii and (raw or json):
+        typer.echo(
+            "Error: --show-pii is mutually exclusive with --json and --raw.",
+            err=True,
         )
         raise typer.Exit(1)
 
@@ -147,6 +173,8 @@ def run_read(
     all_mails = []
     for account in accounts:
         for mail in read_emails(account, count, query=None, raw=raw):
+            if not show_pii:
+                mail = mail.clean_pii()
             all_mails.append(mail)
 
     if json:

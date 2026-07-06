@@ -43,7 +43,9 @@ def _get_message_sync(service: Any, msg_id: str) -> dict[str, Any]:
     )
 
 
-def _message_to_mail(account: str, msg: dict[str, Any], *, raw: bool) -> Mail:
+def _message_to_mail(
+    account: str, msg: dict[str, Any], *, raw: bool, show_pii: bool = False
+) -> Mail:
 
     payload = msg.get("payload") or {}
     headers = payload.get("headers") or []
@@ -59,6 +61,7 @@ def _message_to_mail(account: str, msg: dict[str, Any], *, raw: bool) -> Mail:
         date=date_str,
         body=extract_body(payload, raw=raw),
         gmail_message_id=msg.get("id", ""),
+        show_pii=show_pii,
     )
 
 
@@ -68,6 +71,7 @@ async def read_emails_for_account(
     query: str | None = None,
     *,
     raw: bool = False,
+    show_pii: bool = False,
 ) -> AsyncIterator[Mail]:
     """Fetch messages for an account in parallel using threads.
 
@@ -90,7 +94,7 @@ async def read_emails_for_account(
             s = _build_service(account)
             try:
                 msg = await asyncio.to_thread(_get_message_sync, s, msg_id)
-                return msg_id, _message_to_mail(account, msg, raw=raw)
+                return msg_id, _message_to_mail(account, msg, raw=raw, show_pii=show_pii)
             except Exception as exc:
                 logger.error(f"Failed to fetch message {msg_id} for {account}: {exc}")
                 return msg_id, None
@@ -120,6 +124,7 @@ async def read_emails_async(
     query: str | None = None,
     *,
     raw: bool = False,
+    show_pii: bool = False,
 ) -> AsyncIterator[Mail]:
     """Async wrapper around :func:`read_emails_for_account`."""
 
@@ -127,7 +132,7 @@ async def read_emails_async(
         return [
             mail
             async for mail in read_emails_for_account(
-                account, num_emails, query, raw=raw
+                account, num_emails, query, raw=raw, show_pii=show_pii
             )
         ]
 
@@ -143,6 +148,7 @@ def read_emails(
     query: str | None = None,
     *,
     raw: bool = False,
+    show_pii: bool = False,
 ) -> Iterator[Mail]:
     """Synchronous wrapper around :func:`read_emails_async` (for CLI)."""
 
@@ -150,7 +156,7 @@ def read_emails(
         return [
             mail
             async for mail in read_emails_for_account(
-                account, num_emails, query=query, raw=raw
+                account, num_emails, query=query, raw=raw, show_pii=show_pii
             )
         ]
 
