@@ -20,7 +20,11 @@ dependencies = [
 gmail-cli-py = "gmail_cli_py.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8.0.0", "pytest-asyncio>=0.24.0"]
+dev = [
+    "pre-commit>=4.6.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+]
 
 [build-system]
 requires = ["hatchling"]
