@@ -31,7 +31,9 @@ jobs:
           cache: "pip"
 
       - name: Install uv tool
-        run: uv tool install .
+        run: |
+          uv tool install .
+          uv venv
 
       - name: Install spacy models
         run: |
