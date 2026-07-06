@@ -27,7 +27,9 @@ jobs:
           python-version: ${{ matrix.python-version }} # Handles both uv installation and version mapping in one step!
 
       - name: Install Dependencies
-        run: uv sync --locked --dev
+        run: |
+          uv venv --seed
+          uv sync --locked --dev --seed
 
       #      - name: Install spacy models
       #        run: uv run -- spacy download en_core_web_sm
