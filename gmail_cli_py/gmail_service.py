@@ -94,7 +94,9 @@ async def read_emails_for_account(
             s = _build_service(account)
             try:
                 msg = await asyncio.to_thread(_get_message_sync, s, msg_id)
-                return msg_id, _message_to_mail(account, msg, raw=raw, show_pii=show_pii)
+                return msg_id, _message_to_mail(
+                    account, msg, raw=raw, show_pii=show_pii
+                )
             except Exception as exc:
                 logger.error(f"Failed to fetch message {msg_id} for {account}: {exc}")
                 return msg_id, None

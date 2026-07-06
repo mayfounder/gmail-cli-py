@@ -74,4 +74,8 @@ def test_clean_pii_preserves_account_and_date():
 
     assert cleaned.account == "alice.smith@gmail.com"
     assert cleaned.date == "Mon, 1 Jan 2024"
+<<<<<<< HEAD
     assert cleaned.gmail_message_id == "msg123"
+=======
+    assert cleaned.gmail_message_id == "msg123"
+>>>>>>> 2aa52d4 (Added support for PII removal)
