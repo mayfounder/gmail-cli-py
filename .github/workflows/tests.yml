@@ -10,26 +10,31 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Set up uv
+      - name: Install uv and Set up Python
         uses: astral-sh/setup-uv@v5
         with:
-          version: ">=0.4.15"
+          enable-cache: true
+          python-version: ${{ matrix.python-version }} # Handles both uv installation and version mapping in one step!
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
+      - name: Install Dependencies
+        run: |
+          uv sync --locked --dev
 
-      - name: Install uv tool
-        run: uv tool install .
+      - name: Install pip for spaCy # <-- ADD THIS STEP
+        run: uv pip install pip
+
+      - name: Install spacy models
+        run: uv run -- spacy download en_core_web_sm
 
       - name: Run tests
         run: uv run pytest tests -v --tb=short

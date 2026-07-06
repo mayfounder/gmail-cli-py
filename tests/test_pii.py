@@ -80,12 +80,14 @@ def test_clean_sensitive_text_partial_pii():
 def test_clean_sensitive_text_empty():
     """Test cleaning empty string."""
     cleaned = clean_sensitive_text("")
+    # With mocked Presidio, empty string should remain empty
     assert cleaned == ""
 
 
 def test_clean_sensitive_text_whitespace():
     """Test cleaning text with only whitespace."""
     cleaned = clean_sensitive_text("   \n\t  ")
+    # With mocked Presidio, whitespace should remain unchanged
     assert cleaned == "   \n\t  "
 
 
@@ -101,11 +103,5 @@ def test_clean_sensitive_text_preserves_formatting():
 
     cleaned = clean_sensitive_text(sample)
 
-    # Check that line breaks and spaces are preserved
-    assert "\n" in cleaned
-    assert "multiple" in cleaned
-<<<<<<< HEAD
-    assert "spaces" in cleaned
-=======
-    assert "spaces" in cleaned
->>>>>>> 2aa52d4 (Added support for PII removal)
+    # With mocked Presidio, formatting should be preserved
+    assert cleaned == sample

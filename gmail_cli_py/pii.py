@@ -5,10 +5,6 @@ from __future__ import annotations
 from presidio_analyzer import AnalyzerEngine
 from presidio_anonymizer import AnonymizerEngine
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 2aa52d4 (Added support for PII removal)
 # Comprehensive list of 10 target PII entities
 TARGET_ENTITIES = [
     "PERSON",
@@ -50,8 +46,4 @@ def clean_sensitive_text(input_text: str) -> str:
         analyzer_results=analysis_results,
     )
 
-<<<<<<< HEAD
     return anonymized_result.text
-=======
-    return anonymized_result.text
->>>>>>> 2aa52d4 (Added support for PII removal)
