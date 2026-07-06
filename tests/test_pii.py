@@ -104,8 +104,4 @@ def test_clean_sensitive_text_preserves_formatting():
     # Check that line breaks and spaces are preserved
     assert "\n" in cleaned
     assert "multiple" in cleaned
-<<<<<<< HEAD
     assert "spaces" in cleaned
-=======
-    assert "spaces" in cleaned
->>>>>>> 2aa52d4 (Added support for PII removal)
