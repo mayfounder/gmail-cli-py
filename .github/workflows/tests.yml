@@ -29,8 +29,8 @@ jobs:
       - name: Install Dependencies
         run: uv sync --locked --dev
 
-      - name: Install spacy models
-        run: uv run -- spacy download en_core_web_sm
+      #      - name: Install spacy models
+      #        run: uv run -- spacy download en_core_web_sm
 
       - name: Run tests
         run: uv run pytest tests -v --tb=short
