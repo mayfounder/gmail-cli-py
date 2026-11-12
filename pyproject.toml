@@ -55,4 +55,5 @@ constraint-dependencies = [
     "filelock>=4.2.1",
     "cryptography>=50.0.0",
     "setuptools>=84.1.0",
+    "oauthlib>=4.0.1",
 ]
