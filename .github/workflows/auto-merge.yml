@@ -1,0 +1,76 @@
+name: Auto-merge
+
+# Merge PRs into main once the "Tests" workflow passes, unless labelled do-not-merge.
+# Runs only `gh` against the API: never checks out or executes PR code.
+on:
+  workflow_run: # zizmor: ignore[dangerous-triggers] -- no checkout, API-only
+    workflows: ["Tests"]
+    types: [completed]
+  pull_request:
+    types: [unlabeled] # removing do-not-merge re-evaluates a PR whose tests already passed
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
+concurrency:
+  group: auto-merge-${{ github.event.workflow_run.head_branch || github.event.pull_request.number }}
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    if: >-
+      (github.event_name == 'workflow_run'
+        && github.event.workflow_run.event == 'pull_request'
+        && github.event.workflow_run.conclusion == 'success')
+      || (github.event_name == 'pull_request'
+        && github.event.label.name == 'do-not-merge')
+    steps:
+      - name: Merge if eligible
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          # 1. Work out which PR and which commit were tested.
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            SHA="$RUN_SHA"
+            PR=$(gh pr list --state open --search "$SHA" --json number,headRefOid \
+              --jq "[.[] | select(.headRefOid == \"$SHA\")][0].number // empty")
+            if [ -z "$PR" ]; then
+              echo "No open PR with head $SHA; nothing to merge."; exit 0
+            fi
+          else
+            SHA="$PR_SHA"
+            PR="$PR_NUMBER"
+          fi
+          echo "PR #$PR at $SHA"
+
+          # 2. Eligibility checks.
+          INFO=$(gh pr view "$PR" --json state,isDraft,baseRefName,headRefOid,labels,isCrossRepository)
+          check() { echo "$INFO" | jq -r "$1"; }
+          if [ "$(check .state)" != "OPEN" ]; then echo "PR is not open; skipping."; exit 0; fi
+          if [ "$(check .isDraft)" = "true" ]; then echo "PR is a draft; skipping."; exit 0; fi
+          if [ "$(check .baseRefName)" != "main" ]; then echo "Base is not main; skipping."; exit 0; fi
+          if [ "$(check .isCrossRepository)" = "true" ]; then echo "Fork PR; never auto-merged."; exit 0; fi
+          if [ "$(check .headRefOid)" != "$SHA" ]; then echo "Stale run (PR head moved); skipping."; exit 0; fi
+          if [ "$(check '[.labels[].name] | index("do-not-merge") != null')" = "true" ]; then
+            echo "PR has do-not-merge label; skipping."; exit 0
+          fi
+
+          # 3. Latest Tests run for this commit must have succeeded.
+          RESULT=$(gh run list --workflow tests.yml --commit "$SHA" --event pull_request \
+            --json status,conclusion,databaseId --limit 1 --jq '.[0] | "\(.status) \(.conclusion)"')
+          if [ "$RESULT" != "completed success" ]; then
+            echo "Latest Tests run is '$RESULT', not 'completed success'; skipping."; exit 0
+          fi
+
+          # 4. Merge (merge commit), only if the head is still the tested commit.
+          gh pr merge "$PR" --merge --delete-branch --match-head-commit "$SHA"
