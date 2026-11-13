@@ -73,4 +73,4 @@ jobs:
           fi
 
           # 4. Merge (merge commit), only if the head is still the tested commit.
-          gh pr merge "$PR" --merge --delete-branch --match-head-commit "$SHA"
+          gh pr merge "$PR" --repo "$GH_REPO" --merge --delete-branch --match-head-commit "$SHA"
