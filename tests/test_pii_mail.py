@@ -76,3 +76,28 @@ def test_clean_pii_preserves_account_and_date():
     assert cleaned.account == "alice.smith@gmail.com"
     assert cleaned.date == "Mon, 1 Jan 2024"
     assert cleaned.gmail_message_id == "msg123"
+
+
+def test_clean_pii_redacts_each_field_once(monkeypatch):
+    """clean_pii on a show_pii=True mail cleans subject/from/body exactly once."""
+    from gmail_cli_py.models import mail as mail_module
+
+    calls = []
+
+    def fake_clean(text):
+        calls.append(text)
+        return text
+
+    monkeypatch.setattr(mail_module, "clean_sensitive_text", fake_clean)
+    mail = Mail(
+        account="user@gmail.com",
+        subject="s",
+        from_addr="f",
+        date="d",
+        body="b",
+        gmail_message_id="m",
+        show_pii=True,
+    )
+    assert calls == []
+    mail.clean_pii()
+    assert len(calls) == 3
