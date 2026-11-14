@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
+import logging
+from functools import cache
+
 from presidio_analyzer import AnalyzerEngine
 from presidio_anonymizer import AnonymizerEngine
+
+logging.getLogger("presidio-analyzer").setLevel(logging.WARNING)
+logging.getLogger("presidio-anonymizer").setLevel(logging.WARNING)
 
 # Comprehensive list of 10 target PII entities
 TARGET_ENTITIES = [
@@ -20,6 +26,12 @@ TARGET_ENTITIES = [
 ]
 
 
+@cache
+def _get_engines() -> tuple[AnalyzerEngine, AnonymizerEngine]:
+    """Create the Presidio engines once and reuse them."""
+    return AnalyzerEngine(), AnonymizerEngine()
+
+
 def clean_sensitive_text(input_text: str) -> str:
     """Scan and redact PII from text using Presidio.
 
@@ -29,9 +41,7 @@ def clean_sensitive_text(input_text: str) -> str:
     Returns:
         Text with PII replaced by bracketed placeholders (e.g., [REDACTED_PERSON])
     """
-    # Initialize the engines
-    analyzer = AnalyzerEngine()
-    anonymizer = AnonymizerEngine()
+    analyzer, anonymizer = _get_engines()
 
     # Scan the text for the specified PII
     analysis_results = analyzer.analyze(

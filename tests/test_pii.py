@@ -105,3 +105,30 @@ def test_clean_sensitive_text_preserves_formatting():
 
     # With mocked Presidio, formatting should be preserved
     assert cleaned == sample
+
+
+def test_engines_built_once(monkeypatch):
+    """Engines are constructed once and reused across calls."""
+    from gmail_cli_py import pii
+
+    pii._get_engines.cache_clear()
+    counts = {"analyzer": 0, "anonymizer": 0}
+    real_analyzer = pii.AnalyzerEngine
+    real_anonymizer = pii.AnonymizerEngine
+
+    def make_analyzer(*a, **k):
+        counts["analyzer"] += 1
+        return real_analyzer(*a, **k)
+
+    def make_anonymizer(*a, **k):
+        counts["anonymizer"] += 1
+        return real_anonymizer(*a, **k)
+
+    monkeypatch.setattr(pii, "AnalyzerEngine", make_analyzer)
+    monkeypatch.setattr(pii, "AnonymizerEngine", make_anonymizer)
+
+    for _ in range(3):
+        clean_sensitive_text("Hello Alice Smith")
+
+    assert counts == {"analyzer": 1, "anonymizer": 1}
+    pii._get_engines.cache_clear()

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 
 from gmail_cli_py.mime import remove_invisible_chars
@@ -50,12 +51,16 @@ class Mail:
         Returns:
             A new Mail instance with sensitive data redacted.
         """
+        if not self.show_pii:
+            # Fields were already redacted in __post_init__.
+            return copy.copy(self)
+        # __post_init__ performs the single redaction pass.
         return Mail(
             account=self.account,
-            subject=clean_sensitive_text(self.subject),
-            from_addr=clean_sensitive_text(self.from_addr),
+            subject=self.subject,
+            from_addr=self.from_addr,
             date=self.date,
-            body=clean_sensitive_text(self.body),
+            body=self.body,
             gmail_message_id=self.gmail_message_id,
             show_pii=False,
         )
